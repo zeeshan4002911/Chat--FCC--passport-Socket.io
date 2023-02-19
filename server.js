@@ -51,15 +51,17 @@ io.use(
   })
 );
 
+// Connecting to Database
 myDB(async client => {
   const myDataBase = await client.db('passport').collection('users');
-  
+
   // modules
   routes(app, myDataBase);
   auth(app, myDataBase);
-  
+
   let currentUsers = 0;
-  
+
+  // Socket Configuration and on and emit
   io.on('connection', socket => {
     ++currentUsers;
     console.log('A user has connected');
@@ -72,25 +74,26 @@ myDB(async client => {
     socket.on('chat message', (message) => {
       io.emit('chat message', { username: socket.request.user.username, message });
     });
-    
+
     socket.on('disconnect', () => {
-    currentUsers--;
-    console.log('user ' + socket.request.user.username + ' connected');
-    io.emit('user', {
-      username: socket.request.user.username,
-      currentUsers,
-      connected: false
+      currentUsers--;
+      console.log('user ' + socket.request.user.username + ' connected');
+      io.emit('user', {
+        username: socket.request.user.username,
+        currentUsers,
+        connected: false
+      });
     });
-    });
-});
-  
-  
+  });
+
+
 }).catch(e => {
   app.route('/').get((req, res) => {
     res.render('index', { title: e, message: 'Unable to connect to database' });
   });
 });
 
+// Socket option function
 function onAuthorizeSuccess(data, accept) {
   console.log('successful connection to socket.io');
 

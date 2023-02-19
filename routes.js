@@ -1,6 +1,7 @@
 const passport = require('passport');
 const bcrypt = require('bcrypt');
 
+// Middleware for checking authentication
 function ensureAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
     return next();
@@ -12,21 +13,24 @@ module.exports = function (app, myDataBase) {
   app.route('/').get((req, res) => {
     res.render('index.pug', {
       title: 'Connected to Database',
-      message: 'Please login', 
+      message: 'Please login',
       showLogin: true,
       showRegistration: true,
       showSocialAuth: true,
-      });
     });
-  
-  app.route("/login").post(passport.authenticate("local", { failureRedirect: '/' }),(req, res) => {
-    res.redirect('/profile', { username: req.user.username});
-  })
-  
-  app.route('/profile').get(ensureAuthenticated, (req,res) => {
-    res.render('profile');
   });
 
+  // Login Route
+  app.route("/login").post(passport.authenticate("local", { failureRedirect: '/' }), (req, res) => {
+    res.redirect('/profile');
+  })
+
+  // Profile Route
+  app.route('/profile').get(ensureAuthenticated, (req, res) => {
+    res.render('profile.pug', { username: req.user.username });
+  });
+
+  // Register Route
   app.route('/register').post((req, res, next) => {
     myDataBase.findOne({ username: req.body.username }, (err, user) => {
       if (err) {
@@ -58,25 +62,29 @@ module.exports = function (app, myDataBase) {
     }
   );
 
+  // Logout Route
   app.route('/logout').get((req, res) => {
     req.logout();
     res.redirect('/');
   });
 
+  // Github authentication route
   app.route("/auth/github").get(passport.authenticate('github'));
-  
-  app.route("/auth/github/callback").get(passport.authenticate('github', { failureRedirect: "/"}), (req, res) => {
+
+  app.route("/auth/github/callback").get(passport.authenticate('github', { failureRedirect: "/" }), (req, res) => {
     req.session.user_id = req.user.id;
     res.redirect('/chat');
   });
 
+  // Chat Route
   app.route("/chat").get(ensureAuthenticated, (req, res) => {
-    res.render("chat.pug", {user: req.user})
+    res.render("chat.pug", { user: req.user })
   });
-  
+
+  // For Others route
   app.use((req, res, next) => {
-  res.status(404)
-    .type('text')
-    .send('Not Found');
+    res.status(404)
+      .type('text')
+      .send('Not Found');
   });
 }
